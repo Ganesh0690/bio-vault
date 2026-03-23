@@ -4,40 +4,40 @@ use arcium_client::idl::arcium::types::CallbackAccount;
 use arcium_client::idl::arcium::types::{CircuitSource, OffChainCircuitSource};
 use arcium_macros::circuit_hash;
 
-const COMP_DEF_OFFSET_COMPARE_GENOMES: u32 = comp_def_offset("compare_genomes");
+const COMP_DEF_OFFSET_FIND_MATCHES: u32 = comp_def_offset("find_matches");
 
-declare_id!("4kUgT1BdfeMGt2UVPgb1f2iZjvRR8WiSodyYYV2vnM6m");
+declare_id!("3pVYFr4wuYy15Y32AqLYKiZ987sdzW3TmZaeAMjvdZrt");
 
 #[arcium_program]
-pub mod genome_shield {
+pub mod private_match {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let state = &mut ctx.accounts.program_state;
         state.authority = ctx.accounts.authority.key();
-        state.total_comparisons = 0;
+        state.total_matches = 0;
         Ok(())
     }
 
-    pub fn init_compare_genomes_comp_def(ctx: Context<InitCompareGenomesCompDef>) -> Result<()> {
+    pub fn init_find_matches_comp_def(ctx: Context<InitFindMatchesCompDef>) -> Result<()> {
         init_comp_def(
             ctx.accounts,
             Some(CircuitSource::OffChain(OffChainCircuitSource {
-                source: "https://raw.githubusercontent.com/tilakkumar56/genome-shield/main/build/compare_genomes.arcis".to_string(),
-                hash: circuit_hash!("compare_genomes"),
+                source: "https://raw.githubusercontent.com/Ganesh0690/private-match/main/build/find_matches.arcis".to_string(),
+                hash: circuit_hash!("find_matches"),
             })),
             None,
         )?;
         Ok(())
     }
 
-    pub fn compare_genomes(
-        ctx: Context<CompareGenomes>,
+    pub fn find_matches(
+        ctx: Context<FindMatches>,
         computation_offset: u64,
-        ct_marker1_a: [u8; 32],
-        ct_marker2_a: [u8; 32],
-        ct_marker1_b: [u8; 32],
-        ct_marker2_b: [u8; 32],
+        ct_contact1_a: [u8; 32],
+        ct_contact2_a: [u8; 32],
+        ct_contact1_b: [u8; 32],
+        ct_contact2_b: [u8; 32],
         ct_count: [u8; 32],
         pub_key: [u8; 32],
         nonce: u128,
@@ -46,43 +46,42 @@ pub mod genome_shield {
         let args = ArgBuilder::new()
             .x25519_pubkey(pub_key)
             .plaintext_u128(nonce)
-            .encrypted_u128(ct_marker1_a)
-            .encrypted_u128(ct_marker2_a)
-            .encrypted_u128(ct_marker1_b)
-            .encrypted_u128(ct_marker2_b)
+            .encrypted_u128(ct_contact1_a)
+            .encrypted_u128(ct_contact2_a)
+            .encrypted_u128(ct_contact1_b)
+            .encrypted_u128(ct_contact2_b)
             .encrypted_u8(ct_count)
             .build();
-        let comp_log_key = ctx.accounts.comp_log.key();
+        let match_log_key = ctx.accounts.match_log.key();
         queue_computation(
             ctx.accounts,
             computation_offset,
             args,
-            vec![CompareGenomesCallback::callback_ix(
+            vec![FindMatchesCallback::callback_ix(
                 computation_offset,
                 &ctx.accounts.mxe_account,
-                &[CallbackAccount { pubkey: comp_log_key, is_writable: true }],
+                &[CallbackAccount { pubkey: match_log_key, is_writable: true }],
             )?],
-            1,
-            0,
+            1, 0,
         )?;
         Ok(())
     }
 
-    #[arcium_callback(encrypted_ix = "compare_genomes")]
-    pub fn compare_genomes_callback(
-        ctx: Context<CompareGenomesCallback>,
-        output: SignedComputationOutputs<CompareGenomesOutput>,
+    #[arcium_callback(encrypted_ix = "find_matches")]
+    pub fn find_matches_callback(
+        ctx: Context<FindMatchesCallback>,
+        output: SignedComputationOutputs<FindMatchesOutput>,
     ) -> Result<()> {
         let _o = match output.verify_output(
             &ctx.accounts.cluster_account,
             &ctx.accounts.computation_account,
         ) {
-            Ok(CompareGenomesOutput { field_0 }) => field_0,
+            Ok(FindMatchesOutput { field_0 }) => field_0,
             Err(_) => return Err(ErrorCode::AbortedComputation.into()),
         };
-        let log = &mut ctx.accounts.comp_log;
+        let log = &mut ctx.accounts.match_log;
         log.completed = true;
-        emit!(CompareEvent { log_id: log.log_id });
+        emit!(MatchEvent { log_id: log.log_id });
         Ok(())
     }
 }
@@ -96,9 +95,9 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[init_computation_definition_accounts("compare_genomes", payer)]
+#[init_computation_definition_accounts("find_matches", payer)]
 #[derive(Accounts)]
-pub struct InitCompareGenomesCompDef<'info> {
+pub struct InitFindMatchesCompDef<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(mut, address = derive_mxe_pda!())]
@@ -116,10 +115,10 @@ pub struct InitCompareGenomesCompDef<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[queue_computation_accounts("compare_genomes", payer)]
+#[queue_computation_accounts("find_matches", payer)]
 #[derive(Accounts)]
 #[instruction(computation_offset: u64)]
-pub struct CompareGenomes<'info> {
+pub struct FindMatches<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(init_if_needed, space = 9, payer = payer, seeds = [&SIGN_PDA_SEED], bump, address = derive_sign_pda!())]
@@ -135,7 +134,7 @@ pub struct CompareGenomes<'info> {
     #[account(mut, address = derive_comp_pda!(computation_offset, mxe_account, ErrorCode::ClusterNotSet))]
     /// CHECK: computation_account
     pub computation_account: UncheckedAccount<'info>,
-    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_COMPARE_GENOMES))]
+    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_FIND_MATCHES))]
     pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
     #[account(mut, address = derive_cluster_pda!(mxe_account, ErrorCode::ClusterNotSet))]
     pub cluster_account: Account<'info, Cluster>,
@@ -143,17 +142,17 @@ pub struct CompareGenomes<'info> {
     pub pool_account: Account<'info, FeePool>,
     #[account(mut, address = ARCIUM_CLOCK_ACCOUNT_ADDRESS)]
     pub clock_account: Account<'info, ClockAccount>,
-    #[account(init, payer = payer, space = 8 + CompLog::INIT_SPACE, seeds = [b"comp_log", computation_offset.to_le_bytes().as_ref()], bump)]
-    pub comp_log: Account<'info, CompLog>,
+    #[account(init, payer = payer, space = 8 + MatchLog::INIT_SPACE, seeds = [b"match_log", computation_offset.to_le_bytes().as_ref()], bump)]
+    pub match_log: Account<'info, MatchLog>,
     pub system_program: Program<'info, System>,
     pub arcium_program: Program<'info, Arcium>,
 }
 
-#[callback_accounts("compare_genomes")]
+#[callback_accounts("find_matches")]
 #[derive(Accounts)]
-pub struct CompareGenomesCallback<'info> {
+pub struct FindMatchesCallback<'info> {
     pub arcium_program: Program<'info, Arcium>,
-    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_COMPARE_GENOMES))]
+    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_FIND_MATCHES))]
     pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
     #[account(address = derive_mxe_pda!())]
     pub mxe_account: Account<'info, MXEAccount>,
@@ -165,26 +164,26 @@ pub struct CompareGenomesCallback<'info> {
     /// CHECK: instructions_sysvar
     pub instructions_sysvar: AccountInfo<'info>,
     #[account(mut)]
-    pub comp_log: Account<'info, CompLog>,
+    pub match_log: Account<'info, MatchLog>,
 }
 
 #[account]
 #[derive(InitSpace)]
 pub struct ProgramState {
     pub authority: Pubkey,
-    pub total_comparisons: u64,
+    pub total_matches: u64,
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct CompLog {
+pub struct MatchLog {
     pub requester: Pubkey,
     pub log_id: u64,
     pub completed: bool,
 }
 
 #[event]
-pub struct CompareEvent { pub log_id: u64 }
+pub struct MatchEvent { pub log_id: u64 }
 
 #[error_code]
 pub enum ErrorCode {

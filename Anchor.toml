@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-genome_shield = "4kUgT1BdfeMGt2UVPgb1f2iZjvRR8WiSodyYYV2vnM6m"
+private_match = "3pVYFr4wuYy15Y32AqLYKiZ987sdzW3TmZaeAMjvdZrt"
 
 [registry]
 url = "https://api.apr.dev"
