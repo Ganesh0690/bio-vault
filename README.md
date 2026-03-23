@@ -1,13 +1,13 @@
-# GenomeShield - Private Genomic Matching on Solana
+# PrivateMatch - Private Friend Discovery on Solana
 
-Compare genetic markers without exposing raw sequences. Powered by Arcium MPC. Real end-to-end computation.
+Find mutual contacts without revealing non-matches. Powered by Arcium MPC. Real end-to-end computation.
 
-Live Demo: https://genome-shield.vercel.app
-Program ID: 4kUgT1BdfeMGt2UVPgb1f2iZjvRR8WiSodyYYV2vnM6m (Solana Devnet)
+Live Demo: https://private-match.vercel.app
+Program ID: 3pVYFr4wuYy15Y32AqLYKiZ987sdzW3TmZaeAMjvdZrt (Solana Devnet)
 
 ## Real MPC Flow
 
-- RescueCipher.encrypt: Encrypts SNP markers via x25519 ECDH
+- RescueCipher.encrypt: Encrypts contact hashes via x25519 ECDH
 - queue_computation: Submits to Arcium MPC via Solana program
 - awaitComputationFinalization: Waits for ARX nodes callback
 
