@@ -11,7 +11,7 @@ import {
 } from "@arcium-hq/client";
 window.Buffer = Buffer;
 
-const PROGRAM_ID = new PublicKey("HCGBJeqeFZtzTgwMUotaycMUx8z9EcJhvMBz5CUFfGyH");
+const PROGRAM_ID = new PublicKey("6moFPWkC7mw9Df7WNyEQbmb5GBvp4bfswWGKV8WQH7ai");
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const CLUSTER_OFFSET = 456;
 import IDL from "./idl/bio_vault.json";
