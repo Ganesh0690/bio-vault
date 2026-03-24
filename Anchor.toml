@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-veil_dao = "F1VtpPEhWZSn1fBdQ8ju5F7Rv4VPTfn8XHPi59cpiHa"
+bio_vault = "HCGBJeqeFZtzTgwMUotaycMUx8z9EcJhvMBz5CUFfGyH"
 
 [registry]
 url = "https://api.apr.dev"
