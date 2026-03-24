@@ -6,7 +6,7 @@ use arcium_macros::circuit_hash;
 
 const COMP_DEF_OFFSET_AUTHENTICATE: u32 = comp_def_offset("authenticate");
 
-declare_id!("6moFPWkC7mw9Df7WNyEQbmb5GBvp4bfswWGKV8WQH7ai");
+declare_id!("HT5HKw83Ygj3dBKjvXgLXHGhrLZqsQN7eQ26A1cMUgfp");
 
 #[arcium_program]
 pub mod bio_vault {

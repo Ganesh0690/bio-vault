@@ -12,7 +12,7 @@ mod circuits {
 
     pub struct AuthResult {
         authenticated: u8,
-        confidence: u128,
+        score: u128,
     }
 
     #[instruction]
@@ -24,14 +24,10 @@ mod circuits {
             d.live_scan - d.template_hash
         };
         let is_match = diff < d.threshold;
-        let valid_template = d.template_hash != 0;
-        let valid_scan = d.live_scan != 0;
-        let all_pass = is_match && valid_template && valid_scan;
-        let authenticated: u8 = if all_pass { 1 } else { 0 };
-        let confidence: u128 = if all_pass {
-            10000 - (diff * 10000 / (d.threshold + 1))
-        } else { 0 };
-        let result = AuthResult { authenticated, confidence };
+        let valid = d.template_hash != 0 && d.live_scan != 0;
+        let authenticated: u8 = if is_match && valid { 1 } else { 0 };
+        let score: u128 = if is_match && valid { d.threshold - diff } else { 0 };
+        let result = AuthResult { authenticated, score };
         input.owner.from_arcis(result)
     }
 }
