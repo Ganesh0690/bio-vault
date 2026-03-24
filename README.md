@@ -2,9 +2,9 @@
 
 Vendor-agnostic, privacy-preserving biometric authentication. Templates are secret-shared across Arcium MPC nodes. Apps learn only match or no-match — raw biometrics are never exposed.
 
-Live Demo: https://bio-vault.vercel.app
-Program ID: HCGBJeqeFZtzTgwMUotaycMUx8z9EcJhvMBz5CUFfGyH (Solana Devnet)
-Explorer: https://explorer.solana.com/address/HCGBJeqeFZtzTgwMUotaycMUx8z9EcJhvMBz5CUFfGyH?cluster=devnet
+Live Demo: https://bio-vault-sage.vercel.app
+Program ID: HT5HKw83Ygj3dBKjvXgLXHGhrLZqsQN7eQ26A1cMUgfp (Solana Devnet)
+Explorer: https://explorer.solana.com/address/HT5HKw83Ygj3dBKjvXgLXHGhrLZqsQN7eQ26A1cMUgfp?cluster=devnet
 
 ## The Problem
 
