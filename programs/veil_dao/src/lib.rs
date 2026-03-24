@@ -4,41 +4,39 @@ use arcium_client::idl::arcium::types::CallbackAccount;
 use arcium_client::idl::arcium::types::{CircuitSource, OffChainCircuitSource};
 use arcium_macros::circuit_hash;
 
-const COMP_DEF_OFFSET_FIND_MATCHES: u32 = comp_def_offset("find_matches");
+const COMP_DEF_OFFSET_SUBMIT_BALLOT: u32 = comp_def_offset("submit_ballot");
 
-declare_id!("3pVYFr4wuYy15Y32AqLYKiZ987sdzW3TmZaeAMjvdZrt");
+declare_id!("F1VtpPEhWZSn1fBdQ8ju5F7Rv4VPTfn8XHPi59cpiHa");
 
 #[arcium_program]
-pub mod private_match {
+pub mod veil_dao {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let state = &mut ctx.accounts.program_state;
         state.authority = ctx.accounts.authority.key();
-        state.total_matches = 0;
+        state.total_ballots = 0;
         Ok(())
     }
 
-    pub fn init_find_matches_comp_def(ctx: Context<InitFindMatchesCompDef>) -> Result<()> {
+    pub fn init_submit_ballot_comp_def(ctx: Context<InitSubmitBallotCompDef>) -> Result<()> {
         init_comp_def(
             ctx.accounts,
             Some(CircuitSource::OffChain(OffChainCircuitSource {
-                source: "https://raw.githubusercontent.com/Ganesh0690/private-match/main/build/find_matches.arcis".to_string(),
-                hash: circuit_hash!("find_matches"),
+                source: "https://raw.githubusercontent.com/Ganesh0690/veil-dao/main/build/submit_ballot.arcis".to_string(),
+                hash: circuit_hash!("submit_ballot"),
             })),
             None,
         )?;
         Ok(())
     }
 
-    pub fn find_matches(
-        ctx: Context<FindMatches>,
+    pub fn submit_ballot(
+        ctx: Context<SubmitBallot>,
         computation_offset: u64,
-        ct_contact1_a: [u8; 32],
-        ct_contact2_a: [u8; 32],
-        ct_contact1_b: [u8; 32],
-        ct_contact2_b: [u8; 32],
-        ct_count: [u8; 32],
+        ct_choice: [u8; 32],
+        ct_stake_weight: [u8; 32],
+        ct_proposal_id: [u8; 32],
         pub_key: [u8; 32],
         nonce: u128,
     ) -> Result<()> {
@@ -46,42 +44,40 @@ pub mod private_match {
         let args = ArgBuilder::new()
             .x25519_pubkey(pub_key)
             .plaintext_u128(nonce)
-            .encrypted_u128(ct_contact1_a)
-            .encrypted_u128(ct_contact2_a)
-            .encrypted_u128(ct_contact1_b)
-            .encrypted_u128(ct_contact2_b)
-            .encrypted_u8(ct_count)
+            .encrypted_u8(ct_choice)
+            .encrypted_u128(ct_stake_weight)
+            .encrypted_u128(ct_proposal_id)
             .build();
-        let match_log_key = ctx.accounts.match_log.key();
+        let ballot_log_key = ctx.accounts.ballot_log.key();
         queue_computation(
             ctx.accounts,
             computation_offset,
             args,
-            vec![FindMatchesCallback::callback_ix(
+            vec![SubmitBallotCallback::callback_ix(
                 computation_offset,
                 &ctx.accounts.mxe_account,
-                &[CallbackAccount { pubkey: match_log_key, is_writable: true }],
+                &[CallbackAccount { pubkey: ballot_log_key, is_writable: true }],
             )?],
             1, 0,
         )?;
         Ok(())
     }
 
-    #[arcium_callback(encrypted_ix = "find_matches")]
-    pub fn find_matches_callback(
-        ctx: Context<FindMatchesCallback>,
-        output: SignedComputationOutputs<FindMatchesOutput>,
+    #[arcium_callback(encrypted_ix = "submit_ballot")]
+    pub fn submit_ballot_callback(
+        ctx: Context<SubmitBallotCallback>,
+        output: SignedComputationOutputs<SubmitBallotOutput>,
     ) -> Result<()> {
         let _o = match output.verify_output(
             &ctx.accounts.cluster_account,
             &ctx.accounts.computation_account,
         ) {
-            Ok(FindMatchesOutput { field_0 }) => field_0,
+            Ok(SubmitBallotOutput { field_0 }) => field_0,
             Err(_) => return Err(ErrorCode::AbortedComputation.into()),
         };
-        let log = &mut ctx.accounts.match_log;
+        let log = &mut ctx.accounts.ballot_log;
         log.completed = true;
-        emit!(MatchEvent { log_id: log.log_id });
+        emit!(BallotEvent { log_id: log.log_id });
         Ok(())
     }
 }
@@ -95,9 +91,9 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[init_computation_definition_accounts("find_matches", payer)]
+#[init_computation_definition_accounts("submit_ballot", payer)]
 #[derive(Accounts)]
-pub struct InitFindMatchesCompDef<'info> {
+pub struct InitSubmitBallotCompDef<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(mut, address = derive_mxe_pda!())]
@@ -115,10 +111,10 @@ pub struct InitFindMatchesCompDef<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[queue_computation_accounts("find_matches", payer)]
+#[queue_computation_accounts("submit_ballot", payer)]
 #[derive(Accounts)]
 #[instruction(computation_offset: u64)]
-pub struct FindMatches<'info> {
+pub struct SubmitBallot<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(init_if_needed, space = 9, payer = payer, seeds = [&SIGN_PDA_SEED], bump, address = derive_sign_pda!())]
@@ -134,7 +130,7 @@ pub struct FindMatches<'info> {
     #[account(mut, address = derive_comp_pda!(computation_offset, mxe_account, ErrorCode::ClusterNotSet))]
     /// CHECK: computation_account
     pub computation_account: UncheckedAccount<'info>,
-    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_FIND_MATCHES))]
+    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_SUBMIT_BALLOT))]
     pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
     #[account(mut, address = derive_cluster_pda!(mxe_account, ErrorCode::ClusterNotSet))]
     pub cluster_account: Account<'info, Cluster>,
@@ -142,17 +138,17 @@ pub struct FindMatches<'info> {
     pub pool_account: Account<'info, FeePool>,
     #[account(mut, address = ARCIUM_CLOCK_ACCOUNT_ADDRESS)]
     pub clock_account: Account<'info, ClockAccount>,
-    #[account(init, payer = payer, space = 8 + MatchLog::INIT_SPACE, seeds = [b"match_log", computation_offset.to_le_bytes().as_ref()], bump)]
-    pub match_log: Account<'info, MatchLog>,
+    #[account(init, payer = payer, space = 8 + BallotLog::INIT_SPACE, seeds = [b"ballot_log", computation_offset.to_le_bytes().as_ref()], bump)]
+    pub ballot_log: Account<'info, BallotLog>,
     pub system_program: Program<'info, System>,
     pub arcium_program: Program<'info, Arcium>,
 }
 
-#[callback_accounts("find_matches")]
+#[callback_accounts("submit_ballot")]
 #[derive(Accounts)]
-pub struct FindMatchesCallback<'info> {
+pub struct SubmitBallotCallback<'info> {
     pub arcium_program: Program<'info, Arcium>,
-    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_FIND_MATCHES))]
+    #[account(address = derive_comp_def_pda!(COMP_DEF_OFFSET_SUBMIT_BALLOT))]
     pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
     #[account(address = derive_mxe_pda!())]
     pub mxe_account: Account<'info, MXEAccount>,
@@ -164,26 +160,26 @@ pub struct FindMatchesCallback<'info> {
     /// CHECK: instructions_sysvar
     pub instructions_sysvar: AccountInfo<'info>,
     #[account(mut)]
-    pub match_log: Account<'info, MatchLog>,
+    pub ballot_log: Account<'info, BallotLog>,
 }
 
 #[account]
 #[derive(InitSpace)]
 pub struct ProgramState {
     pub authority: Pubkey,
-    pub total_matches: u64,
+    pub total_ballots: u64,
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct MatchLog {
-    pub requester: Pubkey,
+pub struct BallotLog {
+    pub voter: Pubkey,
     pub log_id: u64,
     pub completed: bool,
 }
 
 #[event]
-pub struct MatchEvent { pub log_id: u64 }
+pub struct BallotEvent { pub log_id: u64 }
 
 #[error_code]
 pub enum ErrorCode {

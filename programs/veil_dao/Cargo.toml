@@ -1,10 +1,10 @@
 [package]
-name = "private_match"
+name = "veil_dao"
 version = "0.1.0"
 edition = "2021"
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "private_match"
+name = "veil_dao"
 [features]
 default = []
 cpi = ["no-entrypoint"]
